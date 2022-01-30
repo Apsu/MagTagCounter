@@ -76,6 +76,10 @@ while True:
 
     # If any were pressed/released
     if buttons.pressed:
+        # Update timestamp and battery status so it doesn't refresh during button presses
+        battery_timer = time.monotonic()
+        magtag.set_text(f"{battery()}", index=4, auto_refresh=False)
+
         # If A down
         if buttons[0].down:
             # Latch so A doesn't count this as a press when released
@@ -96,10 +100,6 @@ while True:
                 magtag.peripherals.neopixels.fill((255, 50, 200))
         # Otherwise just a press
         else:
-            # Update timestamp and battery status since we're refreshing screen anyway
-            battery_timer = time.monotonic()
-            magtag.set_text(f"{battery()}", index=4, auto_refresh=False)
-
             # A was pressed
             if buttons[0].pressed:
                 rows = (rows - 1) % 10000
