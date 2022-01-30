@@ -166,7 +166,7 @@ while True:
         # Trigger refresh
         magtag.refresh()
     # If timeout has elapsed since last battery update
-    elif time.monotonic() - battery_timer >= 60.0:
+    elif time.monotonic() - battery_timer >= 120.0:
         # Advance timestamp
         battery_timer = time.monotonic()
         # Update battery meter and force refresh
