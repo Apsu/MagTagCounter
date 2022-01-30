@@ -5,15 +5,16 @@ from buttons import Buttons
 
 magtag = MagTag()
 
+# Disable peripherals to start
 magtag.peripherals.speaker_disable = True
 magtag.peripherals.neopixel_disable = True
 brightness = magtag.peripherals.neopixels.brightness = 0.5
 
-rows = 0
-stitches = 0
 
+# Half of width
 midx = magtag.graphics.display.width // 2 - 1
 
+# Setup text blocks
 magtag.add_text(
     text_font=terminalio.FONT,
     text_position=(10, 0),
@@ -54,9 +55,15 @@ magtag.add_text(
     is_data=False
 )
 
+# Return battery status string as percentage
 def battery():
     return f"BAT {magtag.peripherals.battery / 4.2 * 100.0:.0f}%"
 
+# Main counters
+rows = 0
+stitches = 0
+
+# Initial text setup
 magtag.set_text("Rows", index=0, auto_refresh=False)
 magtag.set_text("Stitches", index=1, auto_refresh=False)
 magtag.set_text(f"{rows:4}", index=2, auto_refresh=False)
@@ -64,9 +71,12 @@ magtag.set_text(f"{stitches:4}", index=3, auto_refresh=False)
 magtag.set_text(f"{battery()}", index=4, auto_refresh=False)
 magtag.refresh()
 
-# buttons = [False] * 4
+# If we need to refresh
+refresh = False
+# Timestamp to keep track of battery status
 battery_timer = time.monotonic()
-
+# Timestamp to pool button presses
+button_timer = time.monotonic()
 # Initialize button list
 buttons = Buttons(magtag.peripherals.buttons)
 
@@ -98,6 +108,34 @@ while True:
                 magtag.peripherals.neopixel_disable = not magtag.peripherals.neopixel_disable
                 # Pink!
                 magtag.peripherals.neopixels.fill((255, 50, 200))
+        # Or if B down
+        elif buttons[1].down:
+            # Latch to ignore release
+            buttons[1].latch()
+            # If A pressed
+            if buttons[0].pressed:
+                # Reset row counter
+                rows = 0
+                # Update text and force refresh
+                magtag.set_text(f"{rows:4}", index=2, auto_refresh=True)
+        # Or if D down
+        elif buttons[3].down:
+            # Latch to ignore release
+            buttons[3].latch()
+            # And C pressed
+            if buttons[2].pressed:
+                # Reset stitch counter
+                stitches = 0
+                # Update text and force refresh
+                magtag.set_text(f"{stitches:4}", index=3, auto_refresh=True)
+            # And A pressed
+            if buttons[0].pressed:
+                # Reset both counters
+                rows = 0
+                stitches = 0
+                # Update text and force refresh
+                magtag.set_text(f"{rows:4}", index=2, auto_refresh=False)
+                magtag.set_text(f"{stitches:4}", index=3, auto_refresh=True)
         # Otherwise just a press
         else:
             # A was pressed
@@ -117,8 +155,16 @@ while True:
                 stitches = (stitches + 1) % 10000
                 magtag.set_text(f"{stitches:4}", index=3, auto_refresh=False)
 
-            # Refresh with updates
-            magtag.refresh()
+            # Update button timer since last press
+            button_timer = time.monotonic()
+            # Flag refresh needed
+            refresh = True
+    # If refresh needed and timeout has elapsed since last button press
+    elif refresh and time.monotonic() - button_timer >= 1.0:
+        # Clear flag
+        refresh = False
+        # Trigger refresh
+        magtag.refresh()
     # If timeout has elapsed since last battery update
     elif time.monotonic() - battery_timer >= 60.0:
         # Advance timestamp
